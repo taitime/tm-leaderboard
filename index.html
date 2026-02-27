@@ -1,0 +1,680 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ares Project | TM Leaderboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        mars: {
+                            50: '#fdf8f6',
+                            100: '#f2e8e5',
+                            500: '#e0592a', // Rust Red / Mars Orange
+                            600: '#c2411c',
+                            900: '#431407',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .hexagon {
+            clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%);
+        }
+        /* TM Theme Gradients for Podium */
+        .bg-gradient-temp { background: linear-gradient(135deg, #ef4444 0%, #991b1b 100%); } /* Heat/Red */
+        .bg-gradient-ocean { background: linear-gradient(135deg, #38bdf8 0%, #0369a1 100%); } /* Ocean/Blue */
+        .bg-gradient-oxygen { background: linear-gradient(135deg, #4ade80 0%, #166534 100%); } /* Green */
+        
+        .bg-gradient-mars { background: linear-gradient(135deg, #ffffff 0%, #fff1ec 100%); }
+        .dark .bg-gradient-mars { background: linear-gradient(135deg, #1f2937 0%, #111827 100%); border-color: #374151; }
+
+        /* Custom Scrollbar for Modals */
+        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 20px; }
+        .dark .custom-scrollbar::-webkit-scrollbar-thumb { background-color: #475569; }
+    </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-gray-100 font-sans antialiased transition-colors duration-200">
+
+    <!-- Top Navigation -->
+    <nav class="bg-white dark:bg-gray-800 shadow-sm px-4 sm:px-8 py-4 flex flex-wrap justify-between items-center border-b border-gray-200 dark:border-gray-700 transition-colors duration-200 gap-4">
+        <div class="flex items-center gap-3">
+            <div class="bg-mars-500 text-white p-2 rounded-lg shadow-md">
+                <i class="fa-solid fa-globe"></i>
+            </div>
+            <h1 class="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Ares Project <span class="font-light text-gray-400 hidden sm:inline">| Leaderboard</span></h1>
+        </div>
+        <div class="flex gap-2 sm:gap-4 items-center">
+            <button onclick="toggleDarkMode()" class="px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-lg text-gray-600 dark:text-yellow-400 transition-colors" title="Dark Mode umschalten">
+                <i id="theme-icon" class="fa-solid fa-moon"></i>
+            </button>
+            <button onclick="openHistoryModal()" class="px-3 py-2 sm:px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-lg text-sm font-medium transition-colors shadow-sm"><i class="fa-solid fa-clock-rotate-left sm:mr-2"></i><span class="hidden sm:inline">Historie</span></button>
+            <button onclick="openAddMatchModal()" class="px-3 py-2 sm:px-4 bg-mars-500 hover:bg-mars-600 text-white rounded-lg text-sm font-medium transition-colors shadow-md shadow-mars-500/30"><i class="fa-solid fa-plus sm:mr-2"></i><span class="hidden sm:inline">Match eintragen</span></button>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        
+        <!-- Header Section -->
+        <div class="text-center mb-12 sm:mb-16 relative">
+            <h2 class="text-4xl sm:text-6xl font-extrabold text-gray-100 dark:text-gray-800/50 absolute left-1/2 transform -translate-x-1/2 -top-4 sm:-top-6 -z-10 w-full tracking-widest select-none transition-colors duration-200">CHAMPIONS</h2>
+            <h2 class="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">Terraforming Mars Ranking</h2>
+            <p class="text-sm sm:text-base text-gray-500 dark:text-gray-400 mt-2">Punkte-System (Admin Rules) & Elo-Rating</p>
+        </div>
+
+        <!-- Global Stats Row -->
+        <div id="global-stats" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-12">
+            <!-- Injected by JS -->
+        </div>
+
+        <!-- Dynamic Podium Container -->
+        <div id="podium-container" class="flex flex-col md:flex-row justify-center items-end gap-6 mb-16">
+            <!-- Injected by JS -->
+        </div>
+
+        <!-- Leaderboard List -->
+        <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden transition-colors duration-200">
+            <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex justify-between items-center">
+                <h3 class="text-lg font-bold text-gray-800 dark:text-white">Gesamtranking</h3>
+                <div class="text-xs sm:text-sm text-gray-500 dark:text-gray-400"><i class="fa-solid fa-circle-info mr-1"></i> Sortiert nach TM Punkten</div>
+            </div>
+            <div class="overflow-x-auto custom-scrollbar">
+                <table class="w-full text-left border-collapse min-w-[800px]">
+                    <thead>
+                        <tr class="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wider border-b border-gray-200 dark:border-gray-700">
+                            <th class="px-6 py-4 font-semibold">Rang</th>
+                            <th class="px-6 py-4 font-semibold">Spieler</th>
+                            <th class="px-6 py-4 font-semibold text-center">Spiele</th>
+                            <th class="px-6 py-4 font-semibold text-center">Siege (Win-Rate)</th>
+                            <th class="px-6 py-4 font-semibold text-center">Ø VP</th>
+                            <th class="px-6 py-4 font-semibold text-center text-mars-600">Ø TR</th>
+                            <th class="px-6 py-4 font-semibold text-center text-purple-600" title="Meilensteine / Auszeichnungen"><i class="fa-solid fa-medal"></i> M / A</th>
+                            <th class="px-6 py-4 font-semibold text-right">TM Punkte</th>
+                            <th class="px-6 py-4 font-semibold text-right text-blue-600">Elo-Rating</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-body" class="divide-y divide-gray-100 dark:divide-gray-700">
+                        <!-- Injected by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- MODALS -->
+        <!-- Player Profile Modal -->
+        <div id="profile-modal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-md p-6 relative border border-gray-200 dark:border-gray-700">
+                <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <div id="profile-modal-content"></div>
+            </div>
+        </div>
+
+        <!-- Add Match Modal -->
+        <div id="match-modal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-3xl p-6 relative max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700 custom-scrollbar">
+                <button onclick="closeAddMatchModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <h3 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">Neues Match eintragen</h3>
+                
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Datum</label>
+                        <input type="date" id="match-date" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm border p-2 focus:ring-mars-500 focus:border-mars-500 outline-none">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Generationen</label>
+                        <input type="number" id="match-gens" class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white shadow-sm border p-2 focus:ring-mars-500 focus:border-mars-500 outline-none" value="10">
+                    </div>
+                </div>
+
+                <div class="mb-6 overflow-x-auto pb-2 custom-scrollbar">
+                    <div class="flex justify-between items-center mb-2 min-w-[600px]">
+                        <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">Spieler Platzierungen</label>
+                        <button onclick="addPlayerRow()" class="text-xs bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 px-2 py-1 rounded text-gray-700 dark:text-gray-300 transition-colors">+ Spieler hinzufügen</button>
+                    </div>
+                    <!-- Header Row for inputs -->
+                    <div class="grid grid-cols-12 gap-2 mb-1 text-xs font-semibold text-gray-500 dark:text-gray-400 px-2 min-w-[600px]">
+                        <div class="col-span-1">Platz</div>
+                        <div class="col-span-3">Spieler Name</div>
+                        <div class="col-span-3">Konzern</div>
+                        <div class="col-span-1">VP</div>
+                        <div class="col-span-2">TR</div>
+                        <div class="col-span-2 text-right">M / A</div>
+                    </div>
+                    <div id="match-players" class="space-y-3 min-w-[600px]">
+                        <!-- Injected via JS -->
+                    </div>
+                </div>
+
+                <div class="border-t dark:border-gray-700 pt-4">
+                    <button onclick="generateMatchJSON()" class="w-full py-3 bg-mars-500 text-white rounded-xl font-bold hover:bg-mars-600 transition-colors shadow-lg shadow-mars-500/30">JSON Code generieren</button>
+                </div>
+                
+                <div id="json-output-container" class="mt-4 hidden">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Kopiere diesen Code-Block in deine JSON-Struktur:</label>
+                    <textarea id="json-output" class="w-full h-40 p-3 bg-gray-900 text-green-400 font-mono text-sm rounded-xl border border-gray-700 focus:ring-2 focus:ring-mars-500 outline-none custom-scrollbar" readonly></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Modal -->
+        <div id="history-modal" class="fixed inset-0 bg-gray-900/50 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-gray-800 rounded-3xl shadow-2xl w-full max-w-4xl p-6 relative max-h-[90vh] flex flex-col border border-gray-200 dark:border-gray-700">
+                <button onclick="closeHistoryModal()" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 z-10 transition-colors"><i class="fa-solid fa-xmark text-xl"></i></button>
+                <div class="mb-6 flex-shrink-0">
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-mars-500"></i> Match Historie</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">Alle gespielten Partien in chronologischer Reihenfolge.</p>
+                </div>
+                <div id="history-modal-content" class="overflow-y-auto pr-2 space-y-4 flex-grow custom-scrollbar">
+                    <!-- Injected via JS -->
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- CORE LOGIC: JS ENGINE -->
+    <script>
+        // --- AVATAR & CORP CONFIGURATION ---
+        // Trage hier die URLs zu euren eigenen Bildern ein. 
+        // Bleibt das Feld leer (""), wird automatisch ein Platzhalter generiert.
+        const AVATAR_MAP = {
+            "Felix": "", 
+            "Sarah": "",
+            "Alex": "",
+            "Max": "",
+            "Lisa": ""
+        };
+
+        const CORP_ICONS = {
+            "Ecoline": '<i class="fa-solid fa-leaf text-green-500"></i>',
+            "Tharsis Republic": '<i class="fa-solid fa-city text-gray-400"></i>',
+            "PhoboLog": '<i class="fa-solid fa-space-awesome text-purple-500"></i>',
+            "CrediCor": '<i class="fa-solid fa-coins text-yellow-500"></i>',
+            "Interplanetary": '<i class="fa-solid fa-film text-blue-500"></i>',
+            "Helion": '<i class="fa-solid fa-sun text-yellow-400"></i>',
+            "Mining Guild": '<i class="fa-solid fa-hammer text-gray-500"></i>',
+            "Saturn Systems": '<i class="fa-solid fa-ring text-orange-400"></i>',
+            "Terractor": '<i class="fa-solid fa-globe-americas text-blue-400"></i>',
+            "Valley Trust": '<i class="fa-solid fa-flask text-green-400"></i>',
+            "Point Luna": '<i class="fa-solid fa-moon text-gray-300"></i>',
+            "Robinson Industries": '<i class="fa-solid fa-gears text-orange-500"></i>',
+            "Vitor": '<i class="fa-solid fa-v text-red-500"></i>',
+            "Cheung Shing Mars": '<i class="fa-solid fa-building text-blue-300"></i>'
+        };
+
+        function getAvatar(name) {
+            return AVATAR_MAP[name] && AVATAR_MAP[name] !== "" ? AVATAR_MAP[name] : `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`;
+        }
+
+        function getCorpIcon(corpName) {
+            return CORP_ICONS[corpName] || '<i class="fa-solid fa-industry text-gray-400"></i>';
+        }
+
+        function toggleDarkMode() {
+            document.documentElement.classList.toggle('dark');
+            const isDark = document.documentElement.classList.contains('dark');
+            const icon = document.getElementById('theme-icon');
+            if (isDark) {
+                icon.className = 'fa-solid fa-sun text-yellow-400';
+            } else {
+                icon.className = 'fa-solid fa-moon text-gray-600';
+            }
+        }
+
+        // 1. DATABASE (JSON ARRAY)
+        // Füge hier neue Blöcke ein, die du über das "Match eintragen" Modal generierst!
+        const MOCK_MATCHES = [
+            {
+                "date": "2026-02-10",
+                "map": "Tharsis",
+                "expansions": [],
+                "drafting": true,
+                "generations": 11,
+                "players": [
+                    { "name": "Felix", "placement": 1, "vp": 95, "corp": "Ecoline", "tr": 42, "milestones": 2, "awards": 1 },
+                    { "name": "Sarah", "placement": 2, "vp": 88, "corp": "Tharsis Republic", "tr": 38, "milestones": 1, "awards": 1 },
+                    { "name": "Alex", "placement": 3, "vp": 85, "corp": "PhoboLog", "tr": 35, "milestones": 0, "awards": 1 },
+                    { "name": "Max", "placement": 4, "vp": 72, "corp": "CrediCor", "tr": 28, "milestones": 0, "awards": 0 }
+                ]
+            },
+            {
+                "date": "2026-02-17",
+                "map": "Tharsis",
+                "expansions": ["Prelude"],
+                "drafting": true,
+                "generations": 9,
+                "players": [
+                    { "name": "Alex", "placement": 1, "vp": 102, "corp": "Interplanetary", "tr": 48, "milestones": 3, "awards": 1 },
+                    { "name": "Felix", "placement": 2, "vp": 99, "corp": "Helion", "tr": 45, "milestones": 0, "awards": 2 },
+                    { "name": "Sarah", "placement": 3, "vp": 80, "corp": "Mining Guild", "tr": 33, "milestones": 0, "awards": 0 }
+                ]
+            },
+            {
+                "date": "2026-02-24",
+                "map": "Tharsis",
+                "expansions": ["Prelude"],
+                "drafting": true,
+                "generations": 10,
+                "players": [
+                    { "name": "Felix", "placement": 1, "vp": 110, "corp": "Saturn Systems", "tr": 50, "milestones": 2, "awards": 2 },
+                    { "name": "Max", "placement": 2, "vp": 95, "corp": "Terractor", "tr": 40, "milestones": 1, "awards": 0 },
+                    { "name": "Sarah", "placement": 3, "vp": 90, "corp": "Ecoline", "tr": 42, "milestones": 0, "awards": 1 },
+                    { "name": "Alex", "placement": 4, "vp": 88, "corp": "CrediCor", "tr": 39, "milestones": 0, "awards": 0 },
+                    { "name": "Lisa", "placement": 5, "vp": 65, "corp": "Tharsis Republic", "tr": 25, "milestones": 0, "awards": 0 }
+                ]
+            }
+        ];
+
+        // 2. ENGINE: CALCULATION LOGIC
+        function processLeaderboard(matches) {
+            const playersStats = {};
+
+            // Initialize player data
+            const initPlayer = (name) => {
+                if (!playersStats[name]) {
+                    playersStats[name] = { 
+                        name: name, games: 0, wins: 0, totalVp: 0, 
+                        points: 0, elo: 1000, corps: {},
+                        totalTr: 0, totalMilestones: 0, totalAwards: 0
+                    };
+                }
+            };
+
+            // Rule set defined by Administrator (Fixed Points based on Player Count)
+            const getPointsForPlacement = (placement, totalPlayersInMatch) => {
+                if (totalPlayersInMatch === 3) {
+                    if (placement === 1) return 5;
+                    if (placement === 2) return 3;
+                    if (placement === 3) return 1;
+                } else if (totalPlayersInMatch >= 4) {
+                    if (placement === 1) return 7;
+                    if (placement === 2) return 5;
+                    if (placement === 3) return 4;
+                    if (placement === 4) return 3;
+                    if (placement === 5) return 1;
+                }
+                return 0;
+            };
+
+            // Process each match
+            matches.forEach(match => {
+                const playerCount = match.players.length;
+                
+                // Track standard stats and Admin-Points
+                match.players.forEach(p => {
+                    initPlayer(p.name);
+                    let stats = playersStats[p.name];
+                    
+                    stats.games += 1;
+                    if (p.placement === 1) stats.wins += 1;
+                    stats.totalVp += p.vp;
+                    stats.points += getPointsForPlacement(p.placement, playerCount);
+                    
+                    // Track TM specific metrics
+                    stats.totalTr += p.tr || 0;
+                    stats.totalMilestones += p.milestones || 0;
+                    stats.totalAwards += p.awards || 0;
+
+                    // Track favorite corp
+                    stats.corps[p.corp] = (stats.corps[p.corp] || 0) + 1;
+                });
+
+                // Calculate ELO for this match (Multiplayer logic: treating it as multiple 1v1s)
+                const K = 32; // Elo variance factor
+                for (let i = 0; i < playerCount; i++) {
+                    for (let j = i + 1; j < playerCount; j++) {
+                        let p1 = match.players[i];
+                        let p2 = match.players[j];
+                        
+                        let r1 = playersStats[p1.name].elo;
+                        let r2 = playersStats[p2.name].elo;
+                        
+                        let expected1 = 1 / (1 + Math.pow(10, (r2 - r1) / 400));
+                        let expected2 = 1 / (1 + Math.pow(10, (r1 - r2) / 400));
+                        
+                        let s1 = p1.placement < p2.placement ? 1 : (p1.placement === p2.placement ? 0.5 : 0);
+                        let s2 = 1 - s1;
+                        
+                        playersStats[p1.name].elo += Math.round(K * (s1 - expected1) / (playerCount-1));
+                        playersStats[p2.name].elo += Math.round(K * (s2 - expected2) / (playerCount-1));
+                    }
+                }
+            });
+
+            // Format array for UI
+            const finalRanking = Object.values(playersStats).map(p => {
+                p.avgVp = Math.round(p.totalVp / p.games);
+                p.avgTr = Math.round(p.totalTr / p.games);
+                p.winRate = Math.round((p.wins / p.games) * 100);
+                
+                // Find favorite corp
+                let favCorp = Object.keys(p.corps).reduce((a, b) => p.corps[a] > p.corps[b] ? a : b, "");
+                p.favoriteCorp = favCorp;
+
+                return p;
+            });
+
+            // Sort primary by Points, then by WinRate, then by AvgVP
+            return finalRanking.sort((a, b) => b.points - a.points || b.winRate - a.winRate || b.avgVp - a.avgVp);
+        }
+
+        let currentRankings = [];
+
+        // --- GLOBAL STATS ---
+        function renderGlobalStats(rankings) {
+            const statsContainer = document.getElementById('global-stats');
+            if(!statsContainer) return;
+
+            const totalGames = MOCK_MATCHES.length;
+            const avgGens = Math.round(MOCK_MATCHES.reduce((acc, m) => acc + (m.generations || 0), 0) / (totalGames || 1));
+            
+            let highestVP = 0;
+            let highestVPPlayer = "-";
+            MOCK_MATCHES.forEach(m => m.players.forEach(p => {
+                if(p.vp > highestVP) { highestVP = p.vp; highestVPPlayer = p.name; }
+            }));
+
+            const topMilestones = [...rankings].sort((a, b) => b.totalMilestones - a.totalMilestones)[0];
+
+            statsContainer.innerHTML = `
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-100 dark:border-gray-700 transition-colors hover:shadow-md">
+                    <div class="w-12 h-12 rounded-full bg-mars-100 dark:bg-mars-900/50 text-mars-600 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-rocket"></i></div>
+                    <div><p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Gespielte Matches</p><p class="text-lg font-bold text-gray-900 dark:text-white">${totalGames}</p></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-100 dark:border-gray-700 transition-colors hover:shadow-md">
+                    <div class="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-clock"></i></div>
+                    <div><p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Ø Generationen</p><p class="text-lg font-bold text-gray-900 dark:text-white">${avgGens}</p></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-100 dark:border-gray-700 transition-colors hover:shadow-md">
+                    <div class="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-arrow-trend-up"></i></div>
+                    <div><p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Höchster VP Score</p><p class="text-lg font-bold text-gray-900 dark:text-white">${highestVP} <span class="text-sm font-normal text-gray-500 dark:text-gray-400">von ${highestVPPlayer}</span></p></div>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center gap-4 shadow-sm border border-gray-100 dark:border-gray-700 transition-colors hover:shadow-md">
+                    <div class="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 flex items-center justify-center text-xl shrink-0"><i class="fa-solid fa-medal"></i></div>
+                    <div><p class="text-xs text-gray-500 dark:text-gray-400 font-medium">Meiste Meilensteine</p><p class="text-lg font-bold text-gray-900 dark:text-white">${topMilestones && topMilestones.totalMilestones > 0 ? topMilestones.name : '-'} <span class="text-sm font-normal text-gray-500 dark:text-gray-400">(${topMilestones ? topMilestones.totalMilestones : 0})</span></p></div>
+                </div>
+            `;
+        }
+
+        // --- PLAYER PROFILE MODAL ---
+        function openProfileModal(playerName) {
+            const player = currentRankings.find(p => p.name === playerName);
+            if(!player) return;
+            
+            document.getElementById('profile-modal-content').innerHTML = `
+                <div class="flex flex-col items-center">
+                    <div class="w-24 h-24 hexagon bg-gradient-silver p-1 shadow-lg mb-4">
+                        <img src="${getAvatar(player.name)}" class="w-full h-full hexagon object-cover bg-white dark:bg-gray-800">
+                    </div>
+                    <h3 class="text-2xl font-bold text-gray-900 dark:text-white">${player.name}</h3>
+                    <p class="text-mars-600 font-medium mb-6 flex items-center gap-2">${getCorpIcon(player.favoriteCorp)} ${player.favoriteCorp || 'Kein Favorit'}</p>
+                    
+                    <div class="grid grid-cols-2 gap-4 w-full text-center">
+                        <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Win Rate</p>
+                            <p class="text-xl font-bold text-gray-900 dark:text-white">${player.winRate}%</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Elo Rating</p>
+                            <p class="text-xl font-bold text-blue-600 dark:text-blue-400">${player.elo}</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Ø VP</p>
+                            <p class="text-xl font-bold text-gray-900 dark:text-white">${player.avgVp}</p>
+                        </div>
+                        <div class="bg-gray-50 dark:bg-gray-700 p-3 rounded-xl border border-gray-100 dark:border-gray-600">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 uppercase">Ø TR</p>
+                            <p class="text-xl font-bold text-mars-600 dark:text-mars-400">${player.avgTr}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+            document.getElementById('profile-modal').classList.remove('hidden');
+        }
+        function closeProfileModal() { document.getElementById('profile-modal').classList.add('hidden'); }
+
+        // --- ADD MATCH MODAL & JSON GENERATOR ---
+        function openAddMatchModal() { 
+            document.getElementById('match-date').valueAsDate = new Date();
+            document.getElementById('match-players').innerHTML = '';
+            for(let i=1; i<=3; i++) addPlayerRow(i); // Start with 3 players
+            document.getElementById('json-output-container').classList.add('hidden');
+            document.getElementById('match-modal').classList.remove('hidden'); 
+        }
+        function closeAddMatchModal() { document.getElementById('match-modal').classList.add('hidden'); }
+
+        function addPlayerRow(placement = null) {
+            const container = document.getElementById('match-players');
+            const rowCount = container.children.length + 1;
+            const place = placement || rowCount;
+            const div = document.createElement('div');
+            div.className = "grid grid-cols-12 gap-2 items-center bg-gray-50 dark:bg-gray-700 p-2 rounded border border-gray-200 dark:border-gray-600";
+            div.innerHTML = `
+                <div class="col-span-1"><input type="number" value="${place}" class="w-full p-1 border dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded player-place text-center font-bold focus:ring-mars-500 focus:border-mars-500 outline-none"></div>
+                <div class="col-span-3"><input type="text" placeholder="Name" class="w-full p-1 border dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded player-name focus:ring-mars-500 focus:border-mars-500 outline-none"></div>
+                <div class="col-span-3"><input type="text" placeholder="z.B. Ecoline" class="w-full p-1 border dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded player-corp focus:ring-mars-500 focus:border-mars-500 outline-none"></div>
+                <div class="col-span-1"><input type="number" placeholder="0" class="w-full p-1 border dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded player-vp focus:ring-mars-500 focus:border-mars-500 outline-none"></div>
+                <div class="col-span-2"><input type="number" placeholder="0" class="w-full p-1 border dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded player-tr focus:ring-mars-500 focus:border-mars-500 outline-none"></div>
+                <div class="col-span-2 flex gap-1"><input type="number" placeholder="M" class="w-1/2 p-1 border dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded player-m focus:ring-mars-500 focus:border-mars-500 outline-none"><input type="number" placeholder="A" class="w-1/2 p-1 border dark:border-gray-600 dark:bg-gray-800 dark:text-white rounded player-a focus:ring-mars-500 focus:border-mars-500 outline-none"></div>
+            `;
+            container.appendChild(div);
+        }
+
+        function generateMatchJSON() {
+            const date = document.getElementById('match-date').value;
+            const gens = parseInt(document.getElementById('match-gens').value) || 10;
+            
+            const players = [];
+            document.querySelectorAll('#match-players > div').forEach(row => {
+                const name = row.querySelector('.player-name').value.trim();
+                if(!name) return; // Skip empty rows
+                players.push({
+                    name: name,
+                    placement: parseInt(row.querySelector('.player-place').value) || 0,
+                    vp: parseInt(row.querySelector('.player-vp').value) || 0,
+                    corp: row.querySelector('.player-corp').value.trim() || "Unknown",
+                    tr: parseInt(row.querySelector('.player-tr').value) || 0,
+                    milestones: parseInt(row.querySelector('.player-m').value) || 0,
+                    awards: parseInt(row.querySelector('.player-a').value) || 0
+                });
+            });
+
+            if(players.length === 0) return;
+
+            players.sort((a, b) => a.placement - b.placement);
+
+            const matchData = {
+                date: date,
+                map: "Tharsis",
+                expansions: ["Prelude"],
+                drafting: true,
+                generations: gens,
+                players: players
+            };
+
+            const jsonStr = JSON.stringify(matchData, null, 4) + ",";
+            document.getElementById('json-output').value = jsonStr;
+            document.getElementById('json-output-container').classList.remove('hidden');
+        }
+
+        // --- HISTORY MODAL ---
+        function openHistoryModal() {
+            const container = document.getElementById('history-modal-content');
+            let html = "";
+            
+            // Sort matches by date descending (newest first)
+            const sortedMatches = [...MOCK_MATCHES].sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            sortedMatches.forEach(match => {
+                const sortedPlayers = [...match.players].sort((a, b) => a.placement - b.placement);
+                
+                let playersHtml = "";
+                sortedPlayers.forEach(p => {
+                    const isFirst = p.placement === 1;
+                    playersHtml += `
+                        <div class="flex flex-wrap sm:flex-nowrap items-center justify-between p-3 ${isFirst ? 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700' : 'bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700'} rounded-xl mb-2 gap-2">
+                            <div class="flex items-center gap-3 w-full sm:w-auto">
+                                <div class="w-8 h-8 rounded-full ${isFirst ? 'bg-yellow-400 text-white shadow-md' : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300'} flex items-center justify-center font-bold text-sm shrink-0">
+                                    ${p.placement}
+                                </div>
+                                <div>
+                                    <p class="font-bold text-gray-900 dark:text-white flex items-center gap-1">${p.name} ${isFirst ? '<i class="fa-solid fa-crown text-yellow-500 text-xs"></i>' : ''}</p>
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">${getCorpIcon(p.corp)} ${p.corp}</p>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-4 ml-auto">
+                                <div class="hidden sm:block text-xs text-gray-500 dark:text-gray-400 text-right">
+                                    <span title="Terraforming Rating">TR: ${p.tr || 0}</span> <br> <span title="Meilensteine/Awards">M/A: ${p.milestones || 0}/${p.awards || 0}</span>
+                                </div>
+                                <div class="bg-white dark:bg-gray-700 px-3 py-1 rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm shrink-0">
+                                    <span class="font-bold text-mars-600 dark:text-mars-400 text-lg">${p.vp}</span> <span class="text-xs text-gray-500 dark:text-gray-300">VP</span>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                let dateStr = match.date;
+                try {
+                    dateStr = new Intl.DateTimeFormat('de-DE', { dateStyle: 'long' }).format(new Date(match.date));
+                } catch(e) {}
+
+                const expansions = match.expansions && match.expansions.length > 0 ? match.expansions.join(', ') : 'Keine';
+
+                html += `
+                    <div class="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-2xl shadow-sm overflow-hidden mb-6">
+                        <div class="bg-gray-50 dark:bg-gray-800 px-4 sm:px-5 py-3 border-b border-gray-200 dark:border-gray-700 flex flex-wrap justify-between items-center gap-2">
+                            <div class="font-bold text-gray-800 dark:text-white flex items-center gap-2">
+                                <i class="fa-regular fa-calendar text-mars-500"></i> ${dateStr}
+                            </div>
+                            <div class="flex flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-300 font-medium">
+                                <span class="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded"><i class="fa-solid fa-map"></i> ${match.map || 'Standard'}</span>
+                                <span class="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded"><i class="fa-solid fa-puzzle-piece"></i> ${expansions}</span>
+                                <span class="bg-gray-200 dark:bg-gray-700 px-2 py-1 rounded"><i class="fa-solid fa-clock"></i> ${match.generations || '?'} Gen.</span>
+                            </div>
+                        </div>
+                        <div class="p-3 sm:p-4">
+                            ${playersHtml}
+                        </div>
+                    </div>
+                `;
+            });
+
+            container.innerHTML = html;
+            document.getElementById('history-modal').classList.remove('hidden');
+        }
+
+        function closeHistoryModal() {
+            document.getElementById('history-modal').classList.add('hidden');
+        }
+
+        // --- MAIN RENDER LOOP ---
+        function renderUI() {
+            const rankings = processLeaderboard(MOCK_MATCHES);
+            currentRankings = rankings;
+            
+            renderGlobalStats(rankings);
+            
+            // Render Podium (Top 3)
+            const podiumContainer = document.getElementById('podium-container');
+            const top3 = [rankings[1], rankings[0], rankings[2]]; // Order: 2nd, 1st, 3rd
+            const styles = [
+                { rank: "2nd", colorClass: "bg-gradient-ocean", transform: "md:translate-y-8" }, // Ocean Parameter
+                { rank: "1st", colorClass: "bg-gradient-temp", transform: "z-10 shadow-red-900/20 dark:shadow-red-900/50" }, // Temp Parameter
+                { rank: "3rd", colorClass: "bg-gradient-oxygen", transform: "md:translate-y-8" } // Oxygen Parameter
+            ];
+
+            let podiumHTML = "";
+            top3.forEach((player, index) => {
+                if(!player) return; // Guard for < 3 players
+                const s = styles[index];
+                const isFirst = index === 1;
+
+                podiumHTML += `
+                <div onclick="openProfileModal('${player.name}')" class="cursor-pointer bg-gradient-mars rounded-3xl p-6 w-full md:w-80 shadow-xl border border-white dark:border-gray-700 relative transform transition-all hover:-translate-y-3 hover:shadow-2xl ${s.transform}">
+                    ${isFirst ? '<div class="absolute -top-4 left-1/2 transform -translate-x-1/2 bg-gradient-gold text-yellow-900 text-xs font-bold px-4 py-1 rounded-full shadow-md uppercase tracking-wider whitespace-nowrap">Top Terraformer</div>' : ''}
+                    <div class="absolute top-4 right-4 text-3xl font-bold ${isFirst ? 'text-yellow-200 text-4xl' : 'text-gray-400 dark:text-gray-500'}">${s.rank.charAt(0)}<span class="text-xl">${s.rank.substring(1)}</span></div>
+                    
+                    <div class="flex justify-center mb-4 mt-2">
+                        <div class="${isFirst ? 'w-28 h-28' : 'w-24 h-24'} hexagon ${s.colorClass} p-1 shadow-lg transition-transform duration-300 hover:scale-105">
+                            <img src="${getAvatar(player.name)}" class="w-full h-full hexagon object-cover bg-white dark:bg-gray-800">
+                        </div>
+                    </div>
+                    
+                    <div class="text-center">
+                        <h3 class="${isFirst ? 'text-2xl' : 'text-xl'} font-bold text-gray-900 dark:text-white flex justify-center items-center gap-2">${player.name} ${isFirst ? '<i class="fa-solid fa-crown text-yellow-500 text-sm"></i>' : ''}</h3>
+                        <p class="text-sm text-mars-600 dark:text-mars-400 font-medium">Elo: <span class="text-blue-600 dark:text-blue-400 font-bold">${player.elo}</span></p>
+                    </div>
+                    
+                    <div class="flex justify-between items-center mt-6 pt-6 border-t border-gray-200/60 dark:border-gray-700/60">
+                        <div class="text-center">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">Spiele</p>
+                            <p class="${isFirst ? 'text-xl' : 'text-lg'} font-bold text-gray-900 dark:text-white">${player.games}</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase">Ø VP</p>
+                            <p class="${isFirst ? 'text-xl' : 'text-lg'} font-bold text-gray-900 dark:text-white">${player.avgVp}</p>
+                        </div>
+                        <div class="text-center">
+                            <p class="text-xs text-mars-500 dark:text-mars-400 font-bold uppercase">Punkte</p>
+                            <p class="${isFirst ? 'text-xl' : 'text-lg'} font-bold ${isFirst ? 'bg-mars-600' : 'bg-gray-900 dark:bg-gray-700'} text-white rounded px-3 py-0.5 shadow-md">${player.points}</p>
+                        </div>
+                    </div>
+                </div>
+                `;
+            });
+            podiumContainer.innerHTML = podiumHTML;
+
+            // Render Table (Rank 4+)
+            const tbody = document.getElementById('leaderboard-body');
+            let tableHTML = "";
+            rankings.forEach((player, index) => {
+                const rank = index + 1;
+                tableHTML += `
+                <tr onclick="openProfileModal('${player.name}')" class="cursor-pointer hover:bg-mars-50 dark:hover:bg-gray-700 transition-colors group">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <span class="text-lg font-bold ${rank <= 3 ? 'text-mars-500' : 'text-gray-400 dark:text-gray-500'}">${rank}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center gap-3">
+                            <img src="${getAvatar(player.name)}" class="w-10 h-10 rounded-full bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-600 object-cover">
+                            <div>
+                                <p class="font-bold text-gray-900 dark:text-white">${player.name}</p>
+                                <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">${getCorpIcon(player.favoriteCorp)} ${player.favoriteCorp || 'Kein Favorit'}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center font-medium text-gray-700 dark:text-gray-300">${player.games}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center">
+                        <span class="font-bold text-gray-900 dark:text-white">${player.wins}</span> <span class="text-xs text-gray-500 dark:text-gray-400">(${player.winRate}%)</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center font-medium text-gray-700 dark:text-gray-300">${player.avgVp}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center font-bold text-mars-600 dark:text-mars-400">${player.avgTr}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-center font-medium text-gray-600 dark:text-gray-400">
+                        <span class="text-gray-900 dark:text-white" title="Meilensteine gesamt">${player.totalMilestones}</span> <span class="text-gray-300 dark:text-gray-600 mx-1">/</span> <span class="text-gray-900 dark:text-white" title="Auszeichnungen gesamt">${player.totalAwards}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right">
+                        <span class="font-bold text-white bg-mars-500 rounded px-3 py-1 shadow-sm">${player.points}</span>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right font-mono font-bold text-blue-600 dark:text-blue-400">
+                        ${player.elo}
+                    </td>
+                </tr>
+                `;
+            });
+            tbody.innerHTML = tableHTML;
+        }
+
+        // Initialize App on Load
+        window.onload = renderUI;
+    </script>
+</body>
+</html>
